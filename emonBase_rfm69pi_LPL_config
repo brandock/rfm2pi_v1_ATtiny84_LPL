@@ -1,0 +1,218 @@
+/*
+Configuration functions
+*/
+
+
+#include <Arduino.h>
+#include <avr/pgmspace.h>
+
+#ifdef useEEPROM
+ // Available Serial Commands
+const PROGMEM char helpText1[] =                                
+"|\n"
+"|Available commands:\n"
+"| l\t\t- list config\n"
+"| s\t\t- save to EEPROM\n"
+"| v\t\t- show version\n"
+"| V<n>\t\t- verbose mode, 1 = ON, 0 = OFF\n"
+"| g<nnn>\t- set Group (OEM default = 210)\n"
+"| n<nn>\t\t- set node ID (1..60)\n"
+"| T<ccc>\\n\t- transmit a string.\n"  
+"| ?\t\t- show this again\n|"
+;
+#else
+ // Available Serial Commands
+const PROGMEM char helpText1[] =                                
+"|\n"
+"|Available commands:\n"
+"| l\t\t- list config\n"
+"| v\t\t- show version\n"
+"| V<n>\t\t- verbose mode, 1 = ON, 0 = OFF\n"
+"| g<nnn>\t- set Group (OEM default = 210)\n"
+"| n<nn>\t\t- set node ID (1..60)\n"
+"| T<ccc>\\n\t- transmit a string.\n"  
+"| ?\t\t- show this again\n|"
+;
+#endif
+
+
+
+#define SERIAL_LOCK 2000                                               // Lockout period (ms) after 'old-style' config command
+
+#ifdef useEEPROM
+static void load_config(void)
+{
+  eepromRead(eepromSig, (byte *)&Settings);
+}
+
+static void save_config()
+{
+  eepromWrite(eepromSig, (byte *)&Settings, sizeof(Settings));
+  if (verbose)
+  {
+    eepromPrint(true);
+    Serial.println(F("\r\n|Config saved\r\n|"));
+  }
+}
+#endif
+
+static void list_calibration(void)
+{
+  
+  mySerial.println(F("|Settings"));
+  mySerial.print(F("|RF Band: "));
+  if (Settings.RF_freq == RF69_433MHZ) mySerial.println(F("433MHz"));
+  if (Settings.RF_freq == RF69_868MHZ) mySerial.println(F("868MHz"));
+  if (Settings.RF_freq == RF69_915MHZ) mySerial.println(F("915MHz")); 
+  mySerial.print(F("|Power: "));mySerial.print(Settings.rfPower - 18);mySerial.println(F(" dBm"));
+  mySerial.print(F("|Group: ")); mySerial.println(Settings.networkGroup);
+  mySerial.print(F("|Node ID: ")); mySerial.println(Settings.nodeID);
+}
+
+
+void getCalibration(void)
+{
+/*
+ * Reads calibration information (if available) from the serial port at runtime. 
+ * Data is expected generally in the format
+ * 
+ *  [l] [x] [y] [z]
+ * 
+ * where:
+ *  [l] = a single letter denoting the variable to adjust
+ *  [x] [y] [z] are values to be set.
+ *  see the user instruction above, the comments below or the separate documentation for details
+ * 
+ */
+
+	if (mySerial.available())
+  {   
+    char c = mySerial.peek();
+    char* msg;
+    
+    if (!lockout(c))
+      switch (c) {
+        
+        case 'g':  // set network group
+          Settings.networkGroup = mySerial.parseInt();
+          if (verbose)
+          {
+            mySerial.print(F("|Group ")); mySerial.println(Settings.networkGroup);
+          }
+          rfChanged = true;
+          break;
+            
+        case 'l':
+          list_calibration(); // report calibration values to emonHub (terse)
+          break;
+          
+        case 'n':           
+        case 'i':  //  Set NodeID - range expected: 1 - 60
+          Settings.nodeID = mySerial.parseInt();
+          Settings.nodeID = constrain(Settings.nodeID, 1, 63);
+          if (verbose)
+          {
+            mySerial.print(F("|Node ")); mySerial.println(Settings.nodeID);
+          }
+          rfChanged = true;
+          break;
+
+#ifdef useEEPROM
+        case 's' :
+          save_config(); // Save to EEPROM. ATMega328p has 1kB  EEPROM
+          break;
+#endif
+            
+
+        case 'T': // write alpha-numeric string to be transmitted.
+          msg = outmsg;
+          {
+            char c = 0;
+            byte len = 0;
+            mySerial.read();  // discard 'w'
+            while (c != '\n' && len < MAXMSG)
+            {
+              c = mySerial.read();
+              if (c > 31 && c < 127)
+              {
+                *msg++ = c;
+                len++;
+              }
+            }
+            outmsgLength = len;
+          }          
+          break;
+        
+        case 'v': // print firmware version
+          mySerial.print(F("|emonPi CM V")); mySerial.write(firmware_version);
+          break;
+
+        case 'V': // Verbose mode
+          /*
+          * Format expected: V0 | V1
+          */
+          verbose = (bool)mySerial.parseInt();    
+          mySerial.print(F("|Verbose mode "));mySerial.println(verbose?F("on"):F("off"));
+         break;
+          
+
+        case '?':  // show Help text        
+          showString(helpText1);
+          mySerial.println();
+          break;
+
+        default:
+          ;
+      }
+      // flush the input buffer
+      while (mySerial.available())
+        mySerial.read();
+  }
+}
+
+bool lockout(char c)
+{
+  static bool locked = false;
+  static unsigned long locktime;
+  
+  if (c > 47 && c < 58)                                                // lock out old 'Reverse Polish' format: numbers first.
+  {
+    locked = true;
+    locktime = millis();
+    while (mySerial.available())
+      mySerial.read();
+  }
+  else if ((millis() - locktime) > SERIAL_LOCK)
+  {
+    locked = false;
+  }
+  return locked;
+}  
+  
+static byte bandToFreq (byte band) {
+  return band == 4 ? RF69_433MHZ : band == 8 ? RF69_868MHZ : band == 9 ? RF69_915MHZ : 0;
+}
+
+static void showString (PGM_P s) 
+{
+  for (;;) 
+  {
+    char c = pgm_read_byte(s++);
+    if (c == 0)
+      break;
+    if (c == '\n')
+      mySerial.print('\r');
+    mySerial.print(c);
+  }
+}
+
+byte c2h(byte b)
+{
+  if (b > 47 && b < 58) 
+    return b - 48;
+  else if (b > 64 && b < 71) 
+    return b - 55;
+  else if (b > 96 && b < 103) 
+    return b - 87;
+  return 0;
+}
