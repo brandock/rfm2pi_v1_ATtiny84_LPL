@@ -1,14 +1,14 @@
 # rfm2pi_v1_ATtiny84_LPL
 LowPowerLab RFM69_LPL firmware for the original OpenEnergyMonitor RFM2Pi with ATtiny84.
 
-#Background
+# Background
 The RFM12Pi GPIO expansion board enables a Raspberry Pi (emonBase) to receive data via HopeRF RFM12B or RFM69CW wireless (433/868/915MHz) from other OpenEnergyMonitor modules such an emonTx energy and temperature monitoring node.
 https://github.com/openenergymonitor/RFM2Pi/blob/master/docs/rfm12pi_v1.md
 The original RFM12Pi board was a hand-solderable kit with ATtiny84 microcontroller. The firmware used the Jeelib radio library and was compiled with the arduino-tiny core.
 Flash forward to 2023 and OpenEnergyMonitor’s new continuous monitoring modules use the RF69 library from Felix Rusu of LowPowerLab. Spence Konde has developed the modern DxCore and ATTinyCore board managers for Arduino IDE. DxCore is used to compile the firmware for the latest AVR-DB-based emonTx v4.
 The repository contains new firmware for the original ATtiny84-based RFM2Pi with RFM69CW radios, using the newer RFM69 radio format and ATTinyCore. 
 
-#Notes
+# Notes
 The code is designed to compile with Spence Konde's ATTinyCore for Arduino IDE. The "PIN_PA2" style of designating pins is used. Thus "clockwise" and "counterclockwise" pin mapping should not be an issue. Either board setting in Tools should work.
  
 The RFM69_LPL.h library is needed. 
