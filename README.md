@@ -12,21 +12,25 @@ The repository contains new firmware for the original ATtiny84-based RFM2Pi with
 
 # Notes
 The code is designed to compile with Spence Konde's ATTinyCore for Arduino IDE. The "PIN_PA2" style of designating pins is used. Thus "clockwise" and "counterclockwise" pin mapping should not be an issue. Either board setting in Tools should work.
- 
+
 The RFM69_LPL.h library is needed. 
 https://github.com/openenergymonitor/RFM69_LPL
 It is a cut-down version of the LowPowerLab RF69 library, modified to work with AVR-DB and ATtiny84.
- 
-Some of the user menu functions have been removed to save space in memory: list config (the terse version), set RF band and transmit power, and radio transmit OFF.
+
+Some of the user menu functions have been removed to save space in memory: 
+1. list config (the terse version)
+2. set RF band and transmit power
+3. radio transmit OFF.
 
 Saving and loading user-settings to EEPROM can be disabled to save even more space by commenting out "#define useEEPROM".
 Without these EEPROM functions the sketch uses 66% of program storage spaces (5432/8192 bytes), 59% of dynamic memory (303/512 bytes). 
 With the EEPROM functions the sketch uses 91% of program storage space (7498/8192 bytes), 75% of dynamic memory (387/512 bytes).
 
 The sketch seems to be stable with the EEPROM functions enabled, so they are enabled by default.
- 
+
 SoftwareSerial is used because the RFM2Pi board routes serial through PA3 and PA7, not the ATTinyCore-defined serial pins.
-    
+   
+```
 *  ---------------------------------------------------------------------------
 *  rfm2Pi v1 (ATtiny84) by OpenEnergyMonitor Pin Diagram
 *
@@ -40,4 +44,4 @@ SoftwareSerial is used because the RFM2Pi board routes serial through PA3 and PA
 *      MISO         PA6  7|    |8   PA5        MOSI
 *                         +----+
 *  ---------------------------------------------------------------------------
-
+```
