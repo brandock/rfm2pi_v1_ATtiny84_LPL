@@ -1,5 +1,6 @@
 # rfm2pi_v1_ATtiny84_LPL
 LowPowerLab RFM69_LPL firmware for the original OpenEnergyMonitor RFM2Pi with ATtiny84.
+![Front_rfm12pi](https://github.com/brandock/rfm2pi_v1_ATtiny84_LPL/assets/17953028/a5522a93-7ff7-4335-8f7f-d7771df19994)
 
 # Background
 The RFM12Pi GPIO expansion board enables a Raspberry Pi (emonBase) to receive data via HopeRF RFM12B or RFM69CW wireless (433/868/915MHz) from other OpenEnergyMonitor modules such an emonTx energy and temperature monitoring node.
